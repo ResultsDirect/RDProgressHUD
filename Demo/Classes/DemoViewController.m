@@ -37,10 +37,6 @@
 
 @implementation DemoViewController
 
-- (void)dealloc {
-  [super dealloc];
-}
-
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
   return YES;
 }
@@ -57,7 +53,7 @@
 }
 
 - (void)displayHUDWithMessage:(BOOL)withMessage willComplete:(BOOL)willComplete willSucceed:(BOOL)willSucceed {
-  RDProgressHUD* hud = [[[RDProgressHUD alloc] initWithFrame:CGRectZero] autorelease];
+  RDProgressHUD* hud = [[RDProgressHUD alloc] initWithFrame:CGRectZero];
   hud.doneVisibleDuration = 0.5;
   hud.removeFromSuperviewWhenHidden = YES;
   hud.text = withMessage ? @"Working..." : nil;
