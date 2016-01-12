@@ -34,20 +34,22 @@
 #import <UIKit/UIKit.h>
 
 
-@interface RDProgressHUD : UIView {
-  UIActivityIndicatorView* rdActivityView;
-  UILabel* rdMessage;
-  UIImageView* rdCompleteImage;
-}
+@interface RDProgressHUD : UIView
 
 @property (nonatomic, copy)   NSString       *text;
 @property (nonatomic, assign) CGFloat         fontSize;
 @property (nonatomic, assign) NSTimeInterval  doneVisibleDuration;
 @property (nonatomic, assign) BOOL            removeFromSuperviewWhenHidden;
+@property (nonatomic, assign) CGPoint         positionInFrame;
 
--(void)showInView:(UIView *)view;
--(void)done;
--(void)done:(BOOL)succeeded;
--(void)hide;
+- (void)showInView:(UIView *)view;
+- (void)showInView:(UIView *)view afterDelay:(NSTimeInterval)delay;
+- (void)showWithCurrentFrameInView:(UIView *)view;
+
+- (void)setProgressValue:(float)progress;
+
+- (void)done;
+- (void)done:(BOOL)succeeded;
+- (void)hide;
 
 @end

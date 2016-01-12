@@ -31,8 +31,11 @@
 //  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 //  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#import <QuartzCore/QuartzCore.h>
+
 #import "RDProgressHUD.h"
 
+static const NSTimeInterval kRDAnimationDuration = 0.3;
 static const CGFloat kRDDefaultFontSize = 16.0f;
 static const CGFloat kRDIconSize = 37.0f;
 static const CGFloat kRDMessagePadding = 10.0f;
@@ -40,104 +43,134 @@ static const CGFloat kRDBoxPadding = 16.0f;
 static const CGFloat kRDBoxCornerRadius = 10.0f;
 
 
+@interface RDProgressView : UIView
+
+@property (assign, nonatomic) float progress;
+
+@end
+
+
+@interface RDProgressHUD ()
+
+@property (nonatomic, weak)   UIView *backgroundView;
+@property (nonatomic, weak)   UIActivityIndicatorView *activityIndicator;
+@property (nonatomic, weak)   UILabel *messageLabel;
+@property (nonatomic, weak)   RDProgressView *progressView;
+@property (nonatomic, weak)   UIImageView *completionImageView;
+@property (nonatomic, strong) NSTimer *graceTimer;
+
+@end
+
+
 @implementation RDProgressHUD
 
-@synthesize doneVisibleDuration;
-@synthesize removeFromSuperviewWhenHidden;
-
-
--(id)initWithFrame:(CGRect)frame {
+- (id)initWithFrame:(CGRect)frame
+{
   self = [super initWithFrame:frame];
   if( self != nil ) {
     self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.contentMode = UIViewContentModeRedraw;
+    //self.contentMode = UIViewContentModeRedraw;
     self.backgroundColor = [UIColor clearColor];
     self.opaque = NO;
     self.userInteractionEnabled = YES;
+    self.positionInFrame = CGPointMake(0.5f, 0.5f);
     
-    rdActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
-    rdActivityView.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
-    rdActivityView.hidesWhenStopped = YES;
-    [self addSubview:rdActivityView];
+    UIView* bgLayer = [[UIView alloc] initWithFrame:CGRectZero];
+    bgLayer.backgroundColor = [UIColor colorWithWhite:0 alpha:0.85f];
+    bgLayer.layer.cornerRadius = kRDBoxCornerRadius;
+    [self addSubview:bgLayer];
+    self.backgroundView = bgLayer;
     
-    rdMessage = [[UILabel alloc] initWithFrame:CGRectZero];
-    rdMessage.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
-    rdMessage.font = [UIFont boldSystemFontOfSize:kRDDefaultFontSize];
-    rdMessage.textColor = [UIColor whiteColor];
-    rdMessage.textAlignment = UITextAlignmentCenter;
-    rdMessage.backgroundColor = [UIColor clearColor];
-    rdMessage.opaque = NO;
-    [self addSubview:rdMessage];
+    UIActivityIndicatorView* indicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+    indicator.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
+    indicator.hidesWhenStopped = YES;
+    [self addSubview:indicator];
+    self.activityIndicator = indicator;
     
-    rdCompleteImage = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, kRDIconSize, kRDIconSize)];
-    rdCompleteImage.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
-    rdCompleteImage.contentMode = UIViewContentModeScaleAspectFit;
-    rdCompleteImage.backgroundColor = [UIColor clearColor];
-    rdCompleteImage.opaque = NO;
-    [self addSubview:rdCompleteImage];
+    RDProgressView *progress = [[RDProgressView alloc] initWithFrame:[indicator frame]];
+    [self addSubview:progress];
+    self.progressView = progress;
+    
+    UILabel* label = [[UILabel alloc] initWithFrame:CGRectZero];
+    label.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
+    label.font = [UIFont boldSystemFontOfSize:kRDDefaultFontSize];
+    label.textColor = [UIColor whiteColor];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.backgroundColor = [UIColor clearColor];
+    label.opaque = NO;
+    [self addSubview:label];
+    self.messageLabel = label;
+    
+    UIImageView* imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, kRDIconSize, kRDIconSize)];
+    imageView.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+    imageView.backgroundColor = [UIColor clearColor];
+    imageView.opaque = NO;
+    [self addSubview:imageView];
+    self.completionImageView = imageView;
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
   }
   return self;
 }
 
--(void)dealloc {
-  [[NSNotificationCenter defaultCenter] removeObserver:self];
-  [rdActivityView release];
-  [rdMessage release];
-  [rdCompleteImage release];
-  [super dealloc];
+- (void)dealloc
+{
+  [_graceTimer invalidate];
+  [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceOrientationDidChangeNotification object:nil];
 }
 
 
-#pragma mark -
-#pragma mark properties
+#pragma mark - properties
 
 - (NSString *)text {
-  return rdMessage.text;
+  return self.messageLabel.text;
 }
 
 - (void)setText:(NSString *)text {
-  rdMessage.text = text;
+  self.messageLabel.text = text;
   [self setNeedsLayout];
-  [self setNeedsDisplay];
 }
 
 - (CGFloat)fontSize {
-  return rdMessage.font.pointSize;
+  return self.messageLabel.font.pointSize;
 }
 
 - (void)setFontSize:(CGFloat)size {
-  rdMessage.font = [UIFont boldSystemFontOfSize:size];
+  self.messageLabel.font = [UIFont boldSystemFontOfSize:size];
   [self setNeedsLayout];
-  [self setNeedsDisplay];
 }
 
 
-#pragma mark -
-#pragma mark private API
+#pragma mark - private API
 
 - (UIImage *)bundleImage:(NSString *)imageName {
   static NSString* fullPath = nil;
-  if( fullPath == nil ) {
-    fullPath = [[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"RDProgressHUD.bundle/images"] retain];
-  }
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    fullPath = [[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"RDProgressHUD.bundle"] stringByAppendingPathComponent:@"images"];
+  });
   return [UIImage imageWithContentsOfFile:[fullPath stringByAppendingPathComponent:imageName]];
 }
 
 - (void)orientationChanged:(NSNotification *)notification {
+  if( ![self.superview isKindOfClass:[UIWindow class]] ) {
+    return;
+  }
+  
   UIDeviceOrientation o = [UIDevice currentDevice].orientation;
   CGFloat angle = 0;
   switch( o ) {
     case UIDeviceOrientationPortraitUpsideDown:
-      angle = M_PI;
+      angle = (CGFloat)M_PI;
       break;
     case UIDeviceOrientationLandscapeLeft:
-      angle = M_PI / 2;
+      angle = (CGFloat)(M_PI / 2);
       break;
     case UIDeviceOrientationLandscapeRight:
-      angle = -M_PI / 2;
+      angle = (CGFloat)(-M_PI / 2);
       break;
+    default:break;
   }
   
   self.transform = CGAffineTransformMakeRotation(angle);
@@ -145,125 +178,194 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
   [self setNeedsLayout];
 }
 
-- (void)hideAnimationDidStop:(NSString *)animationID finished:(NSNumber *)finished context:(void *)context {
-  self.hidden = YES;
+
+#pragma mark - public API
+
+- (void)showWithCurrentFrameInView:(UIView *)view
+{
+  [self.graceTimer invalidate];
   
-  if( self.removeFromSuperviewWhenHidden ) {
-    [self removeFromSuperview];
+  if( [view isKindOfClass:[UIWindow class]] ) {
+    [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
+    [self orientationChanged:nil];
   }
-}
-
-
-#pragma mark -
-#pragma mark public API
-
--(void)showInView:(UIView *)view {
-  [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
-  [self orientationChanged:nil];
+  else {
+    self.transform = CGAffineTransformIdentity;
+  }
   
   self.hidden = NO;
-  self.frame = view.bounds;
-  [view addSubview:self];
+  if( self.superview != view ) {
+    [view addSubview:self];
+  }
   
-  rdCompleteImage.hidden = YES;
-  [rdActivityView startAnimating];
+  self.progressView.hidden = YES;
+  self.completionImageView.hidden = YES;
+  [self.activityIndicator startAnimating];
   
   CGAffineTransform xform = self.transform;
   self.transform = CGAffineTransformConcat(xform, CGAffineTransformMakeScale(0.5, 0.5));
   self.alpha = 0;
   
-  [UIView beginAnimations:@"RDProgressHUD show" context:NULL];
-  [UIView setAnimationDuration:0.3];
-  self.transform = xform;
-  self.alpha = 1.0;
-  [UIView commitAnimations];
+  [UIView animateWithDuration:kRDAnimationDuration animations:^{
+    self.transform = xform;
+    self.alpha = 1.0;
+  }];
 }
 
--(void)hide {
-  [[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications];
-  //self.hidden = YES;
+- (void)showInView:(UIView *)view
+{
+  self.frame = view.bounds;
+  [self showWithCurrentFrameInView:view];
+}
+
+- (void)showInView:(UIView *)view afterDelay:(NSTimeInterval)delay
+{
+  if( 0 < delay ) {
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:[self methodSignatureForSelector:@selector(showInView:)]];
+    [invocation setSelector:@selector(showInView:)];
+    [invocation setTarget:self];
+    [invocation setArgument:&view atIndex:2];
+    self.graceTimer = [NSTimer scheduledTimerWithTimeInterval:delay invocation:invocation repeats:NO];
+  }
+  else {
+    [self showInView:view];
+  }
+}
+
+- (void)setProgressValue:(float)progress
+{
+  self.progressView.progress = progress;
+  if( 0.f <= progress ) {
+    self.progressView.hidden = NO;
+    [self.activityIndicator stopAnimating];
+  }
+  else {
+    self.progressView.hidden = YES;
+    if( !self.isHidden ) {
+      [self.activityIndicator startAnimating];
+    }
+  }
+}
+
+- (void)hide
+{
+  [self.graceTimer invalidate];
   
-  [UIView beginAnimations:@"RDProgressHUD hide" context:NULL];
-  [UIView setAnimationDuration:0.3];
-  [UIView setAnimationDelegate:self];
-  [UIView setAnimationDidStopSelector:@selector(hideAnimationDidStop:finished:context:)];
-  self.transform = CGAffineTransformConcat(self.transform, CGAffineTransformMakeScale(1.5, 1.5));
-  self.alpha = 0.02;
-  [UIView commitAnimations];
+  if( [self.superview isKindOfClass:[UIWindow class]] ) {
+    [[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications];
+  }
+  
+  CGAffineTransform originalTransform = self.transform;
+  CGAffineTransform expandedTransform = CGAffineTransformConcat(originalTransform, CGAffineTransformMakeScale(1.5, 1.5));
+  [UIView animateWithDuration:kRDAnimationDuration animations:^{
+    self.transform = expandedTransform;
+    self.alpha = 0.02f;
+  } completion:^(BOOL finished) {
+    self.hidden = YES;
+    self.transform = originalTransform;
+    if( self.removeFromSuperviewWhenHidden ) {
+      [self removeFromSuperview];
+    }
+  }];
 }
 
--(void)done {
+- (void)done
+{
   [self done:YES];
 }
 
--(void)done:(BOOL)succeeded {
+- (void)done:(BOOL)succeeded
+{
   UIImage* img = [self bundleImage:(succeeded ? @"done-good.png" : @"done-fail.png")];
   
-  [rdActivityView stopAnimating];
-  rdCompleteImage.image = img;
-  rdCompleteImage.hidden = NO;
+  self.progressView.hidden = YES;
+  [self.activityIndicator stopAnimating];
+  self.completionImageView.image = img;
+  self.completionImageView.hidden = NO;
   
-  [self performSelector:@selector(hide) withObject:nil afterDelay:self.doneVisibleDuration];
+  self.graceTimer = [NSTimer scheduledTimerWithTimeInterval:self.doneVisibleDuration target:self selector:@selector(hide) userInfo:nil repeats:NO];
 }
 
 
-#pragma mark -
-#pragma mark UIView
+#pragma mark - UIView
 
--(void)layoutSubviews {
+- (void)layoutSubviews {
   [super layoutSubviews];
-  CGPoint center = CGPointMake(self.bounds.size.width/2, self.bounds.size.height/2);
+  CGPoint center = CGPointMake(truncf(self.bounds.size.width * self.positionInFrame.x), truncf(self.bounds.size.height * self.positionInFrame.y));
   
-  if( [rdMessage.text length] > 0 ) {
-    [rdMessage sizeToFit];
-    rdMessage.hidden = NO;
-    rdMessage.center = CGPointMake(center.x, center.y + (rdMessage.frame.size.height+kRDMessagePadding)/2);
+  if( [self.messageLabel.text length] > 0 ) {
+    CGRect frame = self.messageLabel.frame;
+    frame.size = [self.messageLabel sizeThatFits:frame.size];
+    frame.size.width  = ceilf(frame.size.width)  + ((long)ceilf(frame.size.width)  % 2);
+    frame.size.height = ceilf(frame.size.height) + ((long)ceilf(frame.size.height) % 2);
+    frame.origin = CGPointMake(center.x - frame.size.width/2, center.y + kRDMessagePadding/2);
     
-    center.y -= (rdActivityView.frame.size.height + kRDMessagePadding) / 2;
+    self.messageLabel.frame = frame;
+    self.messageLabel.hidden = NO;
+    
+    center.y -= ceilf((self.activityIndicator.frame.size.height + kRDMessagePadding) / 2);
   }
   else {
-    rdMessage.hidden = YES;
+    self.messageLabel.hidden = YES;
   }
   
-  rdActivityView.center = center;
-  rdCompleteImage.center = center;
-}
-
--(void)drawRect:(CGRect)rect {
-  [super drawRect:rect];
+  center = CGPointMake(center.x+0.5f, center.y+0.5f);
+  self.activityIndicator.center = center;
+  self.progressView.center = center;
+  self.completionImageView.center = center;
   
-  CGContextRef ctx = UIGraphicsGetCurrentContext();
-  CGContextSaveGState(ctx);
-  
-  // calculate the bounding box for the elements
-  CGRect box = rdActivityView.frame;
-  if( !rdMessage.hidden ) {
-    box = CGRectUnion(box, rdMessage.frame);
+  // calculate the bounding box for the elements, and re-size the background
+  CGRect box = self.activityIndicator.frame;
+  if( !self.messageLabel.hidden ) {
+    box = CGRectUnion(box, self.messageLabel.frame);
   }
-  box = CGRectInset(box, -kRDBoxPadding, -kRDBoxPadding);
-  
-  CGFloat left   = CGRectGetMinX(box);
-  CGFloat right  = CGRectGetMaxX(box);
-  CGFloat top    = CGRectGetMinY(box);
-  CGFloat bottom = CGRectGetMaxY(box);
-  
-  // build a rounded rect path in that box
-  CGContextBeginPath(ctx);
-  CGContextMoveToPoint(ctx, left, top + kRDBoxCornerRadius);
-  CGContextAddArcToPoint(ctx, left, top, left + kRDBoxCornerRadius, top, kRDBoxCornerRadius);
-  CGContextAddLineToPoint(ctx, right - kRDBoxCornerRadius, top);
-  CGContextAddArcToPoint(ctx, right, top, right, top + kRDBoxCornerRadius, kRDBoxCornerRadius);
-  CGContextAddLineToPoint(ctx, right, bottom - kRDBoxCornerRadius);
-  CGContextAddArcToPoint(ctx, right, bottom, right - kRDBoxCornerRadius, bottom, kRDBoxCornerRadius);
-  CGContextAddLineToPoint(ctx, left + kRDBoxCornerRadius, bottom);
-  CGContextAddArcToPoint(ctx, left, bottom, left, bottom - kRDBoxCornerRadius, kRDBoxCornerRadius);
-  CGContextClosePath(ctx);
-  
-  // fill the path 
-  CGContextSetRGBFillColor(ctx, 0, 0, 0, 0.85);
-  CGContextFillPath(ctx);
-  
-  CGContextRestoreGState(ctx);
+  box = CGRectIntegral(CGRectInset(box, -kRDBoxPadding, -kRDBoxPadding));
+  self.backgroundView.frame = box;
 }
 
 @end
+
+
+@implementation RDProgressView
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+  self = [super initWithFrame:frame];
+  if (self) {
+    self.opaque = NO;
+  }
+  return self;
+}
+
+- (void)setProgress:(float)progress
+{
+  _progress = progress;
+  [self setNeedsDisplay];
+}
+
+- (void)drawRect:(CGRect)rect
+{
+  CGContextRef ctx = UIGraphicsGetCurrentContext();
+  CGRect allRect = self.bounds;
+  CGRect circleRect = CGRectInset(allRect, 2.0f, 2.0f);
+  
+  [[UIColor whiteColor] setStroke];
+  [[UIColor whiteColor] setFill];
+  
+  // draw bounding ring
+  CGContextSetLineWidth(ctx, 2.0f);
+  CGContextStrokeEllipseInRect(ctx, circleRect);
+  
+  // draw progress
+  CGPoint center = CGPointMake(allRect.size.width / 2, allRect.size.height / 2);
+  CGFloat radius = (allRect.size.width - 4) / 2;
+  CGFloat startAngle = -M_PI_2; // 90 degrees
+  CGFloat endAngle = (self.progress * 2 * M_PI) + startAngle;
+  CGContextMoveToPoint(ctx, center.x, center.y);
+  CGContextAddArc(ctx, center.x, center.y, radius, startAngle, endAngle, 0);
+  CGContextClosePath(ctx);
+  CGContextFillPath(ctx);
+}
+
+@end
+
