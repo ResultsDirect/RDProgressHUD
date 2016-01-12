@@ -1,6 +1,6 @@
 # RDProgressHUD
 
-A lightweight progress view for iOS apps. Its public API is meant to be similar to the private UIProgressHUD, and thus is also similar to other reimplementations of that API (e.g. MBProgressHUD).
+A lightweight progress view for iOS apps. Its public API is meant to be similar to the private UIProgressHUD, and thus is also similar to other reimplementations of that API (e.g. [MBProgressHUD](https://github.com/jdg/MBProgressHUD)).
 
 So why create another HUD? Three reasons:
 
@@ -11,6 +11,8 @@ So why create another HUD? Three reasons:
 ## Usage
 
 To use this view in your own apps, just add `RDProgressHUD.h`, `RDProgressHUD.m`, and `RDProgressHUD.bundle` to your project in Xcode, and update your documentation as instructed by the license.
+
+While this class will probably work in older setups, we assume iOS 7+, and ARC.
 
 Use `-showInView:` to display the view (typically, passing the window) and `-hide` to dismiss it.
 
