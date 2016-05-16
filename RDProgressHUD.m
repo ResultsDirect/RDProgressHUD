@@ -36,11 +36,13 @@
 #import "RDProgressHUD.h"
 
 static const NSTimeInterval kRDAnimationDuration = 0.3;
+static const NSTimeInterval kRDProgressAnimationDuration = 0.2;
 static const CGFloat kRDDefaultFontSize = 16.0f;
 static const CGFloat kRDIconSize = 37.0f;
 static const CGFloat kRDMessagePadding = 10.0f;
 static const CGFloat kRDBoxPadding = 16.0f;
 static const CGFloat kRDBoxCornerRadius = 10.0f;
+static const CGFloat kRDLineWidth = 2.0f;
 static NSString *const kRDActivityAnimationKey = @"spinning";
 
 
@@ -54,6 +56,12 @@ static NSString *const kRDActivityAnimationKey = @"spinning";
 @end
 
 @interface RDProgressView : UIView
+
+@property (assign, nonatomic) float progress;
+
+@end
+
+@interface RDProgressBackgroundLayer : CALayer
 
 @property (assign, nonatomic) float progress;
 
@@ -349,7 +357,7 @@ static NSString *const kRDActivityAnimationKey = @"spinning";
     CAShapeLayer *shapeLayer = (CAShapeLayer *)self.layer;
     shapeLayer.strokeColor = UIColor.whiteColor.CGColor;
     shapeLayer.fillColor = nil;
-    shapeLayer.lineWidth = 2.f;
+    shapeLayer.lineWidth = kRDLineWidth;
     shapeLayer.lineCap = kCALineCapRound;
     
     CGPoint center = CGPointMake(kRDIconSize/2.f, kRDIconSize/2.f);
@@ -381,11 +389,11 @@ static NSString *const kRDActivityAnimationKey = @"spinning";
 
 - (void)updateIndicator {
   // update visibility
-  if( !self.isAnimating ) {
-    self.hidden = YES;
+  if( self.isAnimating ) {
+    self.alpha = 1.f;
   }
   else {
-    self.hidden = NO;
+    self.alpha = 0.f;
   }
   
   // update animation
@@ -410,6 +418,10 @@ static NSString *const kRDActivityAnimationKey = @"spinning";
 #pragma mark -
 @implementation RDProgressView
 
++ (Class)layerClass {
+  return [RDProgressBackgroundLayer class];
+}
+
 - (instancetype)initWithFrame:(CGRect)frame
 {
   self = [super initWithFrame:frame];
@@ -422,30 +434,88 @@ static NSString *const kRDActivityAnimationKey = @"spinning";
 - (void)setProgress:(float)progress
 {
   _progress = progress;
-  [self setNeedsDisplay];
+  [self updateProgressAnimated:YES];
 }
 
-- (void)drawRect:(CGRect)rect
+- (void)updateProgressAnimated:(BOOL)animated {
+  [CATransaction begin];
+  [CATransaction setDisableActions:!animated];
+  [(RDProgressBackgroundLayer *)self.layer setProgress:self.progress];
+  [CATransaction commit];
+}
+
+- (void)willMoveToWindow:(UIWindow *)newWindow {
+  [super willMoveToWindow:newWindow];
+  self.layer.contentsScale = newWindow.screen.scale ?: 1.f;
+}
+
+@end
+
+
+@implementation RDProgressBackgroundLayer
+
+@dynamic progress;
+
+- (instancetype)init
 {
-  CGContextRef ctx = UIGraphicsGetCurrentContext();
-  CGRect allRect = self.bounds;
-  CGRect circleRect = CGRectInset(allRect, 2.0f, 2.0f);
+  self = [super init];
+  if (self) {
+  }
+  return self;
+}
+
+- (instancetype)initWithLayer:(id)layer {
+  self = [super initWithLayer:layer];
+  if( nil != self ) {
+    if( [layer isKindOfClass:[RDProgressBackgroundLayer class]] ) {
+      self.progress = [(RDProgressBackgroundLayer *)layer progress];
+    }
+  }
+  return self;
+}
+
++ (BOOL)needsDisplayForKey:(NSString *)key {
+  if( [@"progress" isEqual:key] ) {
+    return YES;
+  }
+  return [super needsDisplayForKey:key];
+}
+
+- (id<CAAction>)actionForKey:(NSString *)event {
+  if( [@"progress" isEqual:event] ) {
+    CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:event];
+    animation.duration = kRDProgressAnimationDuration;
+    animation.fromValue = [self.presentationLayer valueForKey:event] ?: [self valueForKey:event];
+    animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear];
+    return animation;
+  }
+  return [super actionForKey:event];
+}
+
+- (void)drawInContext:(CGContextRef)ctx {
+  CGPoint center = CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidX(self.bounds));
+  CGFloat radius = center.y;
   
-  [[UIColor whiteColor] setStroke];
-  [[UIColor whiteColor] setFill];
-  
-  // draw bounding ring
-  CGContextSetLineWidth(ctx, 2.0f);
-  CGContextStrokeEllipseInRect(ctx, circleRect);
-  
-  // draw progress
-  CGPoint center = CGPointMake(allRect.size.width / 2, allRect.size.height / 2);
-  CGFloat radius = (allRect.size.width - 4) / 2;
-  CGFloat startAngle = -M_PI_2; // 90 degrees
-  CGFloat endAngle = (self.progress * 2 * M_PI) + startAngle;
-  CGContextMoveToPoint(ctx, center.x, center.y);
-  CGContextAddArc(ctx, center.x, center.y, radius, startAngle, endAngle, 0);
+  // outer edge
+  CGContextBeginPath(ctx);
+  CGContextAddArc(ctx, center.x, center.y, radius, 0.f, (2 * M_PI), 1.f);
   CGContextClosePath(ctx);
+  
+  if( self.progress <= 0.99 ) {
+    // punch a hole in the center of the disc for incomplete progress
+    CGContextAddArc(ctx, center.x, center.y, radius-kRDLineWidth, 0.f, (2 * M_PI), 0.f);
+    CGContextClosePath(ctx);
+    
+    // completed wedge
+    CGFloat startAngle = -M_PI_2; // 12 o'clock
+    CGFloat endAngle = startAngle + M_PI * 2 * self.progress;
+    CGContextMoveToPoint(ctx, center.x, center.y);
+    CGContextAddArc(ctx, center.x, center.y, radius-1, endAngle, startAngle, 1);
+    CGContextClosePath(ctx);
+  }
+  
+  // fill the whole thing in
+  CGContextSetFillColorWithColor(ctx, [UIColor whiteColor].CGColor);
   CGContextFillPath(ctx);
 }
 
