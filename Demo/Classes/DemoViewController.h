@@ -46,5 +46,7 @@
 - (IBAction)displayHUDWithProgressAndMessageWillSucceed;
 - (IBAction)displayHUDWithProgressAndMessageWillFail;
 
+- (IBAction)displayHUDWithDeterminateProgress;
+
 @end
 

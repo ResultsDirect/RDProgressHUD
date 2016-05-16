@@ -106,5 +106,25 @@
                   willSucceed:NO];
 }
 
+- (void)displayHUDWithDeterminateProgress {
+  RDProgressHUD* hud = [[RDProgressHUD alloc] initWithFrame:CGRectZero];
+  hud.doneVisibleDuration = 0.5;
+  hud.removeFromSuperviewWhenHidden = YES;
+  [hud showInView:[self.view window]];
+  
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    [hud setProgressValue: 0.25f];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.7 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      [hud setProgressValue: 0.65f];
+      
+      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [hud setProgressValue: 1.f];
+        [hud done:YES];
+      });
+    });
+  });
+}
+
 
 @end
