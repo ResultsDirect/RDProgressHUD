@@ -17,6 +17,7 @@
 		28D7ACF80DDB3853001CB0EB /* DemoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28D7ACF70DDB3853001CB0EB /* DemoViewController.m */; };
 		9C19262B1272101700F55B6E /* RDProgressHUD.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 9C19262A1272101700F55B6E /* RDProgressHUD.bundle */; };
 		9C1926331272106F00F55B6E /* RDProgressHUD.m in Sources */ = {isa = PBXBuildFile; fileRef = 9C1926321272106F00F55B6E /* RDProgressHUD.m */; };
+		F68089AB1CEA21B100945A23 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F68089AA1CEA21B100945A23 /* Launch Screen.storyboard */; };
 		F6B7BA1D1C45BAE6007A9507 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F6B7BA1C1C45BAE6007A9507 /* Images.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -37,6 +38,7 @@
 		9C19262A1272101700F55B6E /* RDProgressHUD.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; name = RDProgressHUD.bundle; path = ../RDProgressHUD.bundle; sourceTree = SOURCE_ROOT; };
 		9C1926311272106F00F55B6E /* RDProgressHUD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RDProgressHUD.h; path = ../RDProgressHUD.h; sourceTree = SOURCE_ROOT; };
 		9C1926321272106F00F55B6E /* RDProgressHUD.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RDProgressHUD.m; path = ../RDProgressHUD.m; sourceTree = SOURCE_ROOT; };
+		F68089AA1CEA21B100945A23 /* Launch Screen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
 		F6B7BA1C1C45BAE6007A9507 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Demo/Images.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -102,6 +104,7 @@
 				F6B7BA1C1C45BAE6007A9507 /* Images.xcassets */,
 				2899E5210DE3E06400AC0155 /* DemoViewController.xib */,
 				28AD733E0D9D9553002E5188 /* MainWindow.xib */,
+				F68089AA1CEA21B100945A23 /* Launch Screen.storyboard */,
 				8D1107310486CEB800E47090 /* Demo-Info.plist */,
 				9C19262A1272101700F55B6E /* RDProgressHUD.bundle */,
 			);
@@ -144,7 +147,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0640;
+				LastUpgradeCheck = 0730;
 			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "Demo" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -173,6 +176,7 @@
 				28AD733F0D9D9553002E5188 /* MainWindow.xib in Resources */,
 				F6B7BA1D1C45BAE6007A9507 /* Images.xcassets in Resources */,
 				2899E5220DE3E06400AC0155 /* DemoViewController.xib in Resources */,
+				F68089AB1CEA21B100945A23 /* Launch Screen.storyboard in Resources */,
 				9C19262B1272101700F55B6E /* RDProgressHUD.bundle in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -199,13 +203,13 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				COPY_PHASE_STRIP = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Demo_Prefix.pch;
 				INFOPLIST_FILE = "Demo-Info.plist";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.resultsdirect.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = RDProgressHUDDemo;
 			};
 			name = Debug;
@@ -215,11 +219,11 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				COPY_PHASE_STRIP = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Demo_Prefix.pch;
 				INFOPLIST_FILE = "Demo-Info.plist";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.resultsdirect.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = RDProgressHUDDemo;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -230,10 +234,11 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_ARC = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.2;
 				ONLY_ACTIVE_ARCH = YES;
 				PREBINDING = NO;
 				SDKROOT = iphoneos;
@@ -248,7 +253,7 @@
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.2;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				PREBINDING = NO;
 				SDKROOT = iphoneos;
