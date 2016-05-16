@@ -18,6 +18,7 @@
 		9C19262B1272101700F55B6E /* RDProgressHUD.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 9C19262A1272101700F55B6E /* RDProgressHUD.bundle */; };
 		9C1926331272106F00F55B6E /* RDProgressHUD.m in Sources */ = {isa = PBXBuildFile; fileRef = 9C1926321272106F00F55B6E /* RDProgressHUD.m */; };
 		F68089AB1CEA21B100945A23 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F68089AA1CEA21B100945A23 /* Launch Screen.storyboard */; };
+		F68089AD1CEA291100945A23 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F68089AC1CEA291100945A23 /* QuartzCore.framework */; };
 		F6B7BA1D1C45BAE6007A9507 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F6B7BA1C1C45BAE6007A9507 /* Images.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -39,6 +40,7 @@
 		9C1926311272106F00F55B6E /* RDProgressHUD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RDProgressHUD.h; path = ../RDProgressHUD.h; sourceTree = SOURCE_ROOT; };
 		9C1926321272106F00F55B6E /* RDProgressHUD.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RDProgressHUD.m; path = ../RDProgressHUD.m; sourceTree = SOURCE_ROOT; };
 		F68089AA1CEA21B100945A23 /* Launch Screen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
+		F68089AC1CEA291100945A23 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		F6B7BA1C1C45BAE6007A9507 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Demo/Images.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -47,6 +49,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F68089AD1CEA291100945A23 /* QuartzCore.framework in Frameworks */,
 				1D60589F0D05DD5A006BFB54 /* Foundation.framework in Frameworks */,
 				1DF5F4E00D08C38300B7A737 /* UIKit.framework in Frameworks */,
 				288765A50DF7441C002DB57D /* CoreGraphics.framework in Frameworks */,
@@ -114,6 +117,7 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				F68089AC1CEA291100945A23 /* QuartzCore.framework */,
 				1DF5F4DF0D08C38300B7A737 /* UIKit.framework */,
 				1D30AB110D05D00D00671497 /* Foundation.framework */,
 				288765A40DF7441C002DB57D /* CoreGraphics.framework */,

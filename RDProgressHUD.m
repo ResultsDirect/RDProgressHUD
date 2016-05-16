@@ -41,7 +41,17 @@ static const CGFloat kRDIconSize = 37.0f;
 static const CGFloat kRDMessagePadding = 10.0f;
 static const CGFloat kRDBoxPadding = 16.0f;
 static const CGFloat kRDBoxCornerRadius = 10.0f;
+static NSString *const kRDActivityAnimationKey = @"spinning";
 
+
+@interface RDProgressActivityView : UIView
+
+@property (assign, nonatomic, getter=isAnimating) BOOL animating;
+
+- (void)startAnimating;
+- (void)stopAnimating;
+
+@end
 
 @interface RDProgressView : UIView
 
@@ -50,10 +60,11 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
 @end
 
 
+#pragma mark -
 @interface RDProgressHUD ()
 
 @property (nonatomic, weak)   UIView *backgroundView;
-@property (nonatomic, weak)   UIActivityIndicatorView *activityIndicator;
+@property (nonatomic, weak)   RDProgressActivityView *activityView;
 @property (nonatomic, weak)   UILabel *messageLabel;
 @property (nonatomic, weak)   RDProgressView *progressView;
 @property (nonatomic, weak)   UIImageView *completionImageView;
@@ -81,11 +92,10 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
     [self addSubview:bgLayer];
     self.backgroundView = bgLayer;
     
-    UIActivityIndicatorView* indicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+    RDProgressActivityView* indicator = [[RDProgressActivityView alloc] init];
     indicator.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
-    indicator.hidesWhenStopped = YES;
     [self addSubview:indicator];
-    self.activityIndicator = indicator;
+    self.activityView = indicator;
     
     RDProgressView *progress = [[RDProgressView alloc] initWithFrame:[indicator frame]];
     [self addSubview:progress];
@@ -121,7 +131,7 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
 }
 
 
-#pragma mark - properties
+#pragma mark properties
 
 - (NSString *)text {
   return self.messageLabel.text;
@@ -142,7 +152,7 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
 }
 
 
-#pragma mark - private API
+#pragma mark private API
 
 - (UIImage *)bundleImage:(NSString *)imageName {
   static NSString* fullPath = nil;
@@ -179,7 +189,7 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
 }
 
 
-#pragma mark - public API
+#pragma mark public API
 
 - (void)showWithCurrentFrameInView:(UIView *)view
 {
@@ -200,7 +210,7 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
   
   self.progressView.hidden = YES;
   self.completionImageView.hidden = YES;
-  [self.activityIndicator startAnimating];
+  [self.activityView startAnimating];
   
   CGAffineTransform xform = self.transform;
   self.transform = CGAffineTransformConcat(xform, CGAffineTransformMakeScale(0.5, 0.5));
@@ -237,12 +247,12 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
   self.progressView.progress = progress;
   if( 0.f <= progress ) {
     self.progressView.hidden = NO;
-    [self.activityIndicator stopAnimating];
+    [self.activityView stopAnimating];
   }
   else {
     self.progressView.hidden = YES;
     if( !self.isHidden ) {
-      [self.activityIndicator startAnimating];
+      [self.activityView startAnimating];
     }
   }
 }
@@ -279,7 +289,7 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
   UIImage* img = [self bundleImage:(succeeded ? @"done-good.png" : @"done-fail.png")];
   
   self.progressView.hidden = YES;
-  [self.activityIndicator stopAnimating];
+  [self.activityView stopAnimating];
   self.completionImageView.image = img;
   self.completionImageView.hidden = NO;
   
@@ -287,7 +297,7 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
 }
 
 
-#pragma mark - UIView
+#pragma mark UIView
 
 - (void)layoutSubviews {
   [super layoutSubviews];
@@ -303,19 +313,19 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
     self.messageLabel.frame = frame;
     self.messageLabel.hidden = NO;
     
-    center.y -= ceilf((self.activityIndicator.frame.size.height + kRDMessagePadding) / 2);
+    center.y -= ceilf((self.activityView.frame.size.height + kRDMessagePadding) / 2);
   }
   else {
     self.messageLabel.hidden = YES;
   }
   
   center = CGPointMake(center.x+0.5f, center.y+0.5f);
-  self.activityIndicator.center = center;
+  self.activityView.center = center;
   self.progressView.center = center;
   self.completionImageView.center = center;
   
   // calculate the bounding box for the elements, and re-size the background
-  CGRect box = self.activityIndicator.frame;
+  CGRect box = self.activityView.frame;
   if( !self.messageLabel.hidden ) {
     box = CGRectUnion(box, self.messageLabel.frame);
   }
@@ -326,6 +336,78 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
 @end
 
 
+#pragma mark -
+@implementation RDProgressActivityView
+
++ (Class)layerClass {
+  return [CAShapeLayer class];
+}
+
+- (instancetype)init {
+  self = [super initWithFrame:CGRectMake(0, 0, kRDIconSize, kRDIconSize)];
+  if( nil != self ) {
+    CAShapeLayer *shapeLayer = (CAShapeLayer *)self.layer;
+    shapeLayer.strokeColor = UIColor.whiteColor.CGColor;
+    shapeLayer.fillColor = nil;
+    shapeLayer.lineWidth = 2.f;
+    shapeLayer.lineCap = kCALineCapRound;
+    
+    CGPoint center = CGPointMake(kRDIconSize/2.f, kRDIconSize/2.f);
+    UIBezierPath *path = [UIBezierPath bezierPathWithArcCenter:center radius:(center.y - 1.f) startAngle:(2 * M_PI / 6) endAngle:(2 * M_PI) clockwise:YES];
+    shapeLayer.path = path.CGPath;
+  }
+  return self;
+}
+
+- (void)startAnimating {
+  self.animating = YES;
+  [self updateIndicator];
+}
+
+- (void)stopAnimating {
+  self.animating = NO;
+  [self updateIndicator];
+}
+
+- (void)willMoveToWindow:(UIWindow *)newWindow {
+  [super willMoveToWindow:newWindow];
+  self.layer.contentsScale = newWindow.screen.scale ?: 1.f;
+}
+
+- (void)didMoveToWindow {
+  [super didMoveToWindow];
+  [self updateIndicator];
+}
+
+- (void)updateIndicator {
+  // update visibility
+  if( !self.isAnimating ) {
+    self.hidden = YES;
+  }
+  else {
+    self.hidden = NO;
+  }
+  
+  // update animation
+  if( self.isAnimating && nil != self.window ) {
+    if( nil == [self.layer animationForKey:kRDActivityAnimationKey] ) {
+      CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"transform.rotation"];
+      animation.duration = 1.5;
+      animation.toValue = [NSNumber numberWithDouble:(2 * M_PI)];
+      animation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear];
+      animation.repeatCount = INFINITY;
+      [self.layer addAnimation:animation forKey:kRDActivityAnimationKey];
+    }
+  }
+  else {
+    [self.layer removeAnimationForKey:kRDActivityAnimationKey];
+  }
+}
+
+@end
+
+
+#pragma mark -
 @implementation RDProgressView
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -368,4 +450,3 @@ static const CGFloat kRDBoxCornerRadius = 10.0f;
 }
 
 @end
-
